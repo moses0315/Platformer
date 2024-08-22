@@ -1,4 +1,4 @@
-[gd_scene load_steps=35 format=3 uid="uid://cis4t00dagbvu"]
+[gd_scene load_steps=36 format=3 uid="uid://cis4t00dagbvu"]
 
 [ext_resource type="Script" path="res://enemy.gd" id="1_uj2dh"]
 [ext_resource type="Texture2D" uid="uid://dpbh2r5ro6tm5" path="res://png/attacking.png" id="2_6yotn"]
@@ -12,14 +12,14 @@ radius = 12.0
 height = 32.0
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_oro3h"]
-radius = 12.0
-height = 46.0
+radius = 33.0
+height = 93.9999
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_l5g80"]
 radius = 208.471
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_ewjwf"]
-radius = 47.0956
+radius = 105.005
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_tfr50"]
 atlas = ExtResource("2_6yotn")
@@ -193,6 +193,9 @@ animations = [{
 "speed": 5.0
 }]
 
+[sub_resource type="CircleShape2D" id="CircleShape2D_2fjyg"]
+radius = 3.0
+
 [sub_resource type="Animation" id="Animation_03bog"]
 length = 0.001
 tracks/0/type = "value"
@@ -279,11 +282,15 @@ _data = {
 }
 
 [node name="Enemy" type="CharacterBody2D"]
-collision_layer = 2
-collision_mask = 0
+collision_layer = 8
+collision_mask = 8
 script = ExtResource("1_uj2dh")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="HitStaticBody2D" type="StaticBody2D" parent="."]
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="HitStaticBody2D"]
 position = Vector2(0, 0.5)
 shape = SubResource("RectangleShape2D_imp3w")
 
@@ -303,6 +310,7 @@ collision_layer = 0
 position = Vector2(0, -6)
 rotation = 1.5708
 shape = SubResource("CapsuleShape2D_oro3h")
+debug_color = Color(0, 0.6, 0.701961, 0)
 
 [node name="DetectArea2D" type="Area2D" parent="."]
 collision_layer = 0
@@ -312,9 +320,11 @@ shape = SubResource("CircleShape2D_l5g80")
 debug_color = Color(1, 0, 0, 0)
 
 [node name="DetectCloseArea2D" type="Area2D" parent="."]
+collision_layer = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="DetectCloseArea2D"]
 shape = SubResource("CircleShape2D_ewjwf")
+debug_color = Color(1, 0, 0, 0)
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = SubResource("SpriteFrames_76qgj")
@@ -322,13 +332,19 @@ animation = &"attack"
 offset = Vector2(5, 0)
 metadata/_edit_lock_ = true
 
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_2fjyg")
+debug_color = Color(0, 0.6, 0.701961, 0.419608)
+
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = {
 "": SubResource("AnimationLibrary_k8rsq")
 }
 
+[node name="WanderStopTimer" type="Timer" parent="."]
+one_shot = true
+
 [node name="WanderTimer" type="Timer" parent="."]
-wait_time = 2.0
 one_shot = true
 
 [node name="ChaseTimer" type="Timer" parent="."]
@@ -340,5 +356,6 @@ autostart = true
 [connection signal="body_exited" from="DetectArea2D" to="." method="_on_detect_area_2d_body_exited"]
 [connection signal="body_entered" from="DetectCloseArea2D" to="." method="_on_detect_close_area_2d_body_entered"]
 [connection signal="body_exited" from="DetectCloseArea2D" to="." method="_on_detect_close_area_2d_body_exited"]
+[connection signal="timeout" from="WanderStopTimer" to="." method="_on_wander_stop_timer_timeout"]
 [connection signal="timeout" from="WanderTimer" to="." method="_on_wander_timer_timeout"]
 [connection signal="timeout" from="ChaseTimer" to="." method="_on_chase_timer_timeout"]
