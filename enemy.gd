@@ -228,11 +228,12 @@ func wander(delta):
 	
 func chase_player(delta, chase_speed):
 	if player:
-		#var id_path = astar_grid.get_id_path(
-		var id_path = a_star(
+		var id_path = astar_grid.get_id_path(
+		#var id_path = a_star(
 			tile_map.local_to_map(global_position),
 			tile_map.local_to_map(player.global_position)
 		).slice(1)
+		print(id_path)
 
 		if id_path.is_empty() == false:
 			current_id_path = id_path
