@@ -16,7 +16,6 @@ enum State {
 	CHASING_CLOSE
 }
 
-var astar_grid: AStarGrid2D
 var current_id_path: Array[Vector2i]
 
 var grid_map = {}
@@ -34,27 +33,10 @@ func _ready():
 	tile_size = tile_map.tile_set.tile_size.x
 	
 	setup_grid_from_tilemap(tile_map)
-	astar_grid = AStarGrid2D.new()
-	astar_grid.region = Rect2i(Vector2i(0, 0), Vector2i(880, 432))
-	astar_grid.cell_size = Vector2(16, 16)
-	astar_grid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
-	astar_grid.HEURISTIC_EUCLIDEAN
-	astar_grid.update() 
+ 
 	
 	var used_rect = tile_map.get_used_rect()
 
-	for x in range(used_rect.size.x):
-		for y in range(used_rect.size.y):
-			var tile_position = Vector2i(
-				x + used_rect.position.x,#타일맵 위치가 변해도 상관없게 하기 위함
-				y + used_rect.position.y
-			)
-			var tile_data = tile_map.get_cell_tile_data(0, tile_position)
-
-			if tile_data == null or tile_data.get_custom_data("walkable") == true:
-				astar_grid.set_point_solid(tile_position, false)  # 길로 설정
-			else:
-				astar_grid.set_point_solid(tile_position, true)  # 장애물로 설정
 func _physics_process(delta):
 	match state:
 		State.WANDERING:
@@ -152,6 +134,7 @@ func heuristic_cost_estimate(start: Vector2i, goal: Vector2i) -> float:
 	var dx = goal.x - start.x
 	var dy = goal.y - start.y
 	return D * (dx + dy) + (D2 - 2 * D) * min(dx, dy)
+	#return abs(goal.x - start.x + goal.y - start.y)
 	
 func a_star(start_position: Vector2i, goal_position: Vector2i) -> Array[Vector2i]:
 	var open_set = PriorityQueue.new()
@@ -198,8 +181,7 @@ func set_random_target():
 	random_target.x = clamp(random_target.x, 0, tile_map.get_used_rect().size.x - 1)
 	random_target.y = clamp(random_target.y, 0, tile_map.get_used_rect().size.y - 1)
 	
-	current_id_path = astar_grid.get_id_path(current_position, random_target).slice(1)
-
+	#a_star(current_position, random_target).slice(1)
 
 
 func wander(delta):
@@ -228,12 +210,12 @@ func wander(delta):
 	
 func chase_player(delta, chase_speed):
 	if player:
-		var id_path = astar_grid.get_id_path(
-		#var id_path = a_star(
+		await get_tree().create_timer(0.1).timeout
+		#var id_path = astar_grid.get_id_path(
+		var id_path = a_star(
 			tile_map.local_to_map(global_position),
 			tile_map.local_to_map(player.global_position)
 		).slice(1)
-		print(id_path)
 
 		if id_path.is_empty() == false:
 			current_id_path = id_path
