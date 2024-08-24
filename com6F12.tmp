@@ -237,6 +237,7 @@ position = Vector2(103, 172)
 
 [node name="Enemy" parent="." instance=ExtResource("3_j8mdx")]
 position = Vector2(409, 275)
+prefers_left = null
 
 [node name="Node" type="Node" parent="."]
 

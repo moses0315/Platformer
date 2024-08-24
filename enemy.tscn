@@ -353,6 +353,12 @@ wait_time = 5.0
 one_shot = true
 autostart = true
 
+[node name="Label" type="Label" parent="."]
+offset_left = -20.0
+offset_top = -13.0
+offset_right = 20.0
+offset_bottom = 10.0
+
 [connection signal="body_entered" from="DetectArea2D" to="." method="_on_detect_area_2d_body_entered"]
 [connection signal="body_exited" from="DetectArea2D" to="." method="_on_detect_area_2d_body_exited"]
 [connection signal="body_entered" from="DetectCloseArea2D" to="." method="_on_detect_close_area_2d_body_entered"]

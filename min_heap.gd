@@ -7,53 +7,48 @@ var heap = []
 func _init():
 	heap = []
 
-func insert(value):
-	heap.append(value)
-	_sift_up(heap.size() - 1)
+# 우선순위와 함께 아이템을 푸시할 수 있도록 수정된 push 메서드
+func push(item, priority):
+	heap.append({"item": item, "priority": priority})
+	_heapify_up(heap.size() - 1)
 
-func pop() -> int:
-	if heap.size() == 0:
-		push_error("Heap is empty")
-		return 0
-	
-	if heap.size() == 1:
-		return heap.pop_back()
-	
-	var root_value = heap[0]
-	heap[0] = heap.pop_back()
-	_sift_down(0)
-	return root_value
+# pop 메서드에서 우선순위가 가장 높은(작은) 아이템을 반환
+func pop():
+	var min_value = null
 
-func peek() -> int:
-	if heap.size() == 0:
-		push_error("Heap is empty")
-		return 0
-	
-	return heap[0]
+	if heap.size() > 1:
+		_swap(0, heap.size() - 1)
+		min_value = heap.pop_back()["item"]
+		_heapify_down(0)
+	elif heap.size() == 1:
+		return heap.pop_back()["item"]
+		
+	return min_value
 
-func _sift_up(index):
+func _heapify_up(index):
 	var parent_index = int((index - 1) / 2)
-	if index > 0 and heap[index] < heap[parent_index]:
+	while index > 0 and heap[index]["priority"] < heap[parent_index]["priority"]:
 		_swap(index, parent_index)
-		_sift_up(parent_index)
+		index = parent_index
 
-func _sift_down(index):
+func _heapify_down(index):
 	var left_child_index = 2 * index + 1
 	var right_child_index = 2 * index + 2
 	var smallest = index
 
-	if left_child_index < heap.size() and heap[left_child_index] < heap[smallest]:
+	if left_child_index < heap.size() and heap[left_child_index]["priority"] < heap[smallest]["priority"]:
 		smallest = left_child_index
-	
-	if right_child_index < heap.size() and heap[right_child_index] < heap[smallest]:
+	if right_child_index < heap.size() and heap[right_child_index]["priority"] < heap[smallest]["priority"]:
 		smallest = right_child_index
 
 	if smallest != index:
 		_swap(index, smallest)
-		_sift_down(smallest)
+		_heapify_down(smallest)
 
 func _swap(i, j):
 	var temp = heap[i]
 	heap[i] = heap[j]
 	heap[j] = temp
 
+func is_empty():
+	return heap.size() == 0

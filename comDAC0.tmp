@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://db0b0bba334h7"]
+[gd_scene load_steps=10 format=3 uid="uid://db0b0bba334h7"]
 
 [ext_resource type="Texture2D" uid="uid://drv684yv8sjln" path="res://FreeCuteTileset/BG1.png" id="1_5yw87"]
 [ext_resource type="Texture2D" uid="uid://fs28m6m5l656" path="res://FreeCuteTileset/Tileset.png" id="1_c4ou4"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://b3p2sul357641" path="res://player.tscn" id="2_b0pjp"]
 [ext_resource type="Texture2D" uid="uid://bs0a4bc5gr7ro" path="res://FreeCuteTileset/BG3.png" id="3_b1oe7"]
 [ext_resource type="PackedScene" uid="uid://cis4t00dagbvu" path="res://enemy.tscn" id="3_j8mdx"]
+[ext_resource type="Script" path="res://a_star.gd" id="7_6gm6j"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_rsy0q"]
 texture = ExtResource("1_c4ou4")
@@ -238,7 +239,17 @@ position = Vector2(103, 172)
 [node name="Enemy" parent="." instance=ExtResource("3_j8mdx")]
 position = Vector2(409, 275)
 
+[node name="Enemy2" parent="." instance=ExtResource("3_j8mdx")]
+position = Vector2(300, 275)
+
+[node name="Enemy3" parent="." instance=ExtResource("3_j8mdx")]
+position = Vector2(200, 275)
+
+[node name="Enemy4" parent="." instance=ExtResource("3_j8mdx")]
+position = Vector2(500, 300)
+
 [node name="Node" type="Node" parent="."]
+script = ExtResource("7_6gm6j")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 zoom = Vector2(1.5, 1.5)
