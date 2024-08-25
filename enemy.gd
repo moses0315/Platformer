@@ -40,6 +40,17 @@ var state = State.WANDERING
 func _ready():
 	tile_size = tile_map.tile_set.tile_size.x
 	setup_grid_from_tilemap(tile_map)
+func _draw():
+	# 경로가 비어있지 않을 때만 시각화
+	if not current_id_path.is_empty():
+		# 첫 번째 위치를 현재 캐릭터의 위치로 설정
+		var previous_point = global_position
+
+		# 경로를 따라 선을 그림
+		for path_point in current_id_path:
+			var target_position = tile_map.map_to_local(path_point)
+			draw_line(previous_point, target_position, Color(1, 0, 0), 2)
+			previous_point = target_position
 
 func _physics_process(delta):
 	match state:
@@ -104,8 +115,7 @@ func a_star(start_position: Vector2i, goal_position: Vector2i):
 			var neighbor_position = current + direction
 			if neighbor_position.x >= 0 and neighbor_position.y >= 0 \
 			and neighbor_position.x <= 54 and neighbor_position.y <= 26 \
-			and grid_map[neighbor_position]["walkable"] \
-			and neighbor_position not in closed_set:
+			and grid_map[neighbor_position]["walkable"] and neighbor_position:# not in closed_set:
 				if abs(direction.x) == 1 and abs(direction.y) == 1:#대각선 이동이라면 
 					var adjacent1 = Vector2i(current.x + direction.x, current.y)
 					var adjacent2 = Vector2i(current.x, current.y + direction.y)
@@ -125,7 +135,7 @@ func a_star(start_position: Vector2i, goal_position: Vector2i):
 				var f_score = tentative_g_score + heuristic(neighbor, goal_position)
 				open_set.push(neighbor, f_score)
 
-	return [] as Array[Vector2i]
+	#return [] as Array[Vector2i]
 
 func set_random_target():
 	var current_position = tile_map.local_to_map(global_position)
@@ -167,12 +177,12 @@ func chase_player(delta, chase_speed):#플레이어의 위치를 장애물 위�
 			tile_map.local_to_map(global_position),
 			Vector2i(3, 3)#current_player_grid_position
 		)
-		#id_path.pop_back()  # 현재 위치를 나타내는 맨 뒤 번째 노드를 제거
+		id_path.pop_back()  # 현재 위치를 나타내는 맨 뒤 번째 노드를 제거
 
 		# 경로가 유효하면 업데이트
 		if not id_path.is_empty():
 			current_id_path = id_path
-
+	print(current_id_path)
 	# 경로가 비어있다면 아무것도 하지 않음
 	if current_id_path.is_empty():
 		velocity = Vector2(0, 0)
@@ -180,7 +190,6 @@ func chase_player(delta, chase_speed):#플레이어의 위치를 장애물 위�
 
 	# 현재 경로의 다음 목표 지점
 	var target_position = tile_map.map_to_local(current_id_path.back())
-
 	# 방향 설정
 	velocity = (target_position - global_position).normalized() * chase_speed
 
@@ -229,10 +238,11 @@ func _on_detect_area_2d_body_entered(body):
 	state = State.CHASING_FAR
 
 func _on_detect_area_2d_body_exited(body):
-	player = null
-	current_id_path.clear()
-	state = State.WANDERING
-	needs_new_wander_path = true
+	pass
+	#player = null
+	#current_id_path.clear()
+	#state = State.WANDERING
+	#needs_new_wander_path = true
 	
 func _on_detect_close_area_2d_body_entered(body):
 	state = State.CHASING_CLOSE
