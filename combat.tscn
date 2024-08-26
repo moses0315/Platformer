@@ -1,11 +1,11 @@
 [gd_scene load_steps=9 format=3 uid="uid://db0b0bba334h7"]
 
-[ext_resource type="Texture2D" uid="uid://drv684yv8sjln" path="res://FreeCuteTileset/BG1.png" id="1_5yw87"]
-[ext_resource type="Texture2D" uid="uid://fs28m6m5l656" path="res://FreeCuteTileset/Tileset.png" id="1_c4ou4"]
-[ext_resource type="Texture2D" uid="uid://ebj2oqqdm0hm" path="res://FreeCuteTileset/BG2.png" id="2_2djij"]
-[ext_resource type="PackedScene" uid="uid://b3p2sul357641" path="res://player.tscn" id="2_b0pjp"]
-[ext_resource type="Texture2D" uid="uid://bs0a4bc5gr7ro" path="res://FreeCuteTileset/BG3.png" id="3_b1oe7"]
-[ext_resource type="PackedScene" uid="uid://cis4t00dagbvu" path="res://enemy.tscn" id="3_j8mdx"]
+[ext_resource type="Texture2D" uid="uid://drv684yv8sjln" path="res://Assets/FreeCuteTileset/BG1.png" id="1_5yw87"]
+[ext_resource type="Texture2D" uid="uid://fs28m6m5l656" path="res://Assets/FreeCuteTileset/Tileset.png" id="1_c4ou4"]
+[ext_resource type="Texture2D" uid="uid://ebj2oqqdm0hm" path="res://Assets/FreeCuteTileset/BG2.png" id="2_2djij"]
+[ext_resource type="PackedScene" uid="uid://b3p2sul357641" path="res://Player/player.tscn" id="2_b0pjp"]
+[ext_resource type="Texture2D" uid="uid://bs0a4bc5gr7ro" path="res://Assets/FreeCuteTileset/BG3.png" id="3_b1oe7"]
+[ext_resource type="PackedScene" uid="uid://cis4t00dagbvu" path="res://Enemies/enemy_besieger.tscn" id="3_j8mdx"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_rsy0q"]
 texture = ExtResource("1_c4ou4")
@@ -245,4 +245,3 @@ target_direction = "down"
 
 [node name="Enemy5" parent="." instance=ExtResource("3_j8mdx")]
 position = Vector2(409, 275)
-target_direction = "center"
