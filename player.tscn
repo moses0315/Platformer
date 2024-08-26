@@ -562,6 +562,13 @@ one_shot = true
 wait_time = 0.4
 one_shot = true
 
+[node name="Camera2D" type="Camera2D" parent="."]
+zoom = Vector2(1.5, 1.5)
+limit_left = 0
+limit_top = 0
+limit_right = 928
+limit_bottom = 426
+
 [connection signal="animation_finished" from="AnimationPlayer" to="." method="_on_animation_player_animation_finished"]
 [connection signal="timeout" from="AttackTimer" to="." method="_on_attack_timer_timeout"]
 [connection signal="timeout" from="SlideTimer" to="." method="_on_slide_timer_timeout"]

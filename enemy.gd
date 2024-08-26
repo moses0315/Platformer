@@ -1,252 +1,165 @@
 extends CharacterBody2D
-
-var min_heap_class = preload("res://min_heap.gd")
-
-@export var prefers_left: bool = true
-
+@export var target_direction = "center"
+var min_heap_class = preload("res://new_min_heap.gd")
+@onready var player = $"../Player"
 @onready var tile_map = $"../TileMap"
-@onready var chase_timer = $ChaseTimer
-@onready var wander_timer = $WanderTimer
-@onready var wander_stop_timer = $WanderStopTimer
-
-var is_chasing = false
-var needs_new_wander_path: bool = true
-
-enum State {
-	WANDERING,
-	CHASING_FAR,
-	CHASING_CLOSE
-}
-var directions = [
+enum GoalDirection {LEFT, RIGHT, UP, DOWN}
+enum State {WANDERING, CHASING_FAR, CHASING_CLOSE}
+var goal
+var speed = 100
+var grid_map = {}
+var path: Array[Vector2i]
+var current_path: Array[Vector2i]
+const DIRECTIONS = [
 	Vector2i(1, 0), Vector2i(-1, 0),
 	Vector2i(0, 1), Vector2i(0, -1),
 	Vector2i(1, 1), Vector2i(-1, -1),
 	Vector2i(1, -1), Vector2i(-1, 1)
 ]
-var current_id_path: Array[Vector2i]
-
-var previous_player_grid_position = Vector2i(-1, -1)
-
-var grid_map = {}
-var tile_map_size: Vector2i
-var tile_size : int
-var player = null
-var speed_wandering = 50
-var speed_chasing_far = 100
-var speed_chasing_close = 100
-
-var state = State.WANDERING
+const GRID_SIZE = Vector2i(58, 27)
+const TILE_SIZE = 16
 
 func _ready():
-	tile_size = tile_map.tile_set.tile_size.x
-	setup_grid_from_tilemap(tile_map)
-
-
+	goal = tile_map.local_to_map(player.global_position)
+	set_grid_map(tile_map)
+	
 func _physics_process(delta):
-	match state:
-		State.WANDERING:
-			wander(delta)
-		State.CHASING_FAR:
-			chase_player(delta, speed_chasing_close)
-			#chase_or_wander(delta)  # 추격하다가 떠돌아다니기 반복
-		State.CHASING_CLOSE:
-			chase_player(delta, speed_chasing_close)
+	move(delta, speed)
 	move_and_slide()
 
+func move(delta, speed):
+	if path.is_empty():#첫번째에만 실행
+		var start = tile_map.local_to_map(global_position)
+		goal = set_goal()#tile_map.local_to_map(player.global_position)
+		path = a_star(start, goal, grid_map)
+		current_path = path.slice(1)#path를 복사, 시작점도 경로에 포함되므로 첫번째 경로를 삭제
+		#print_grid(grid_map, path)
 
-# A* 알고리즘 구현
-func setup_grid_from_tilemap(tile_map):
-	tile_map_size = Vector2i(880, 432)
+	if goal != set_goal() and target_direction != "center":#플레이어 위치 바뀌면 path 초기화
+		path = []
+	if current_path.is_empty():#도착했으면 종료
+		path = []
+		return
+
+	var next_target = tile_map.map_to_local(current_path.front())
+	velocity = (next_target - global_position).normalized() * speed
+
+	if global_position.distance_to(next_target) < 1:
+		velocity = Vector2(0, 0)
+		current_path.pop_front()
+
+			
+func set_grid_map(tile_map):
 	var used_rect = tile_map.get_used_rect()
-	
+
 	for x in range(used_rect.size.x):
 		for y in range(used_rect.size.y):
 			var tile_position = Vector2i(
 				x + used_rect.position.x,
 				y + used_rect.position.y
 			)
-			print([used_rect.position.x, used_rect.position.y])
 			var tile_data = tile_map.get_cell_tile_data(0, tile_position)
 			if tile_data == null or tile_data.get_custom_data("walkable") == true:
-				grid_map[tile_position] = {"walkable": true}
+				grid_map[tile_position] = {"wall": false}
 			else:
-				grid_map[tile_position] = {"walkable": false}
+				grid_map[tile_position] = {"wall": true}
+				
+func set_goal():
+	var goal_directions = {
+		"left":  [Vector2i(-4, 0), Vector2i(-3, 0), Vector2i(-2, 0), Vector2i(-1, 0)],
+		"right": [Vector2i(4, 0), Vector2i(3, 0), Vector2i(2, 0), Vector2i(1, 0)],
+		"up":    [Vector2i(0, -4), Vector2i(0, -3), Vector2i(0, -2), Vector2i(0, -1)],
+		"down":  [Vector2i(0, 4), Vector2i(0, 3), Vector2i(0, 2), Vector2i(0, 1)],
+		"center":[Vector2i(0, 0)] 
+	}
 
+	var player_position = tile_map.local_to_map(player.global_position)
+	for offset in goal_directions[target_direction]:
+		var target_tile = player_position + offset
 
-func heuristic(start: Vector2i, goal: Vector2i) -> float:
-	var D = 1
-	var D2 = 1.4
-	var dx = abs(goal.x - start.x)
-	var dy = abs(goal.y - start.y)
-	return D * (dx + dy) + (D2 - 2 * D) * min(dx, dy)
+		if is_walkable(target_tile, grid_map):
+			return target_tile# 벽이 아닌 타일을 찾으면 해당 타일을 목표로 설정
 
-func a_star(start_position: Vector2i, goal_position: Vector2i):
+	return player_position  # 모든 타일이 벽일 경우, 플레이어 위치 반환
+
+func a_star(start: Vector2i, goal: Vector2i, grid_map):
 	var open_set = min_heap_class.new()
-	open_set.push(start_position, 0)
-
+	open_set.push([0, start])
+	
 	var came_from = {}
-	var g_score = {start_position: 0}
+	var g_score = {start: 0}
+	var f_score = {start: heuristic(start, goal)}
+	
 	var closed_set = {}
 
 	while not open_set.is_empty():
-		var current = open_set.pop()
+		var current = open_set.pop()[1]
 
-		if current == goal_position:
-			var total_path = [current] as Array[Vector2i]
+		#경로를 다 찾았으면 경로 재구성 후 종료
+		if current == goal:
+			var path = [current] as Array[Vector2i]
 			while current in came_from:
 				current = came_from[current]
-				total_path.append(current)
-			return total_path
+				path.append(current)
+			path.reverse()
+			return path
 			
 		closed_set[current] = true
-
-		#get neighbors
-		var neighbors = []
-		for direction in directions:
-			var neighbor_position = current + direction
-			if neighbor_position.x >= 0 and neighbor_position.y >= 0 \
-			and neighbor_position.x <= 54 and neighbor_position.y <= 26 \
-			and grid_map[neighbor_position]["walkable"] and neighbor_position:# not in closed_set:
-				if abs(direction.x) == 1 and abs(direction.y) == 1:#대각선 이동이라면 
-					var adjacent1 = Vector2i(current.x + direction.x, current.y)
-					var adjacent2 = Vector2i(current.x, current.y + direction.y)
-					if grid_map[adjacent1]["walkable"] and grid_map[adjacent2]["walkable"]:#직선 타일 두개 다 이동 가능이어야지 
-						neighbors.append(neighbor_position)
-				else:
-					neighbors.append(neighbor_position)
-
-		#check neighbors
-		for neighbor in neighbors:
-			var tentative_g_score = g_score.get(current, INF) + \
-			(1.4 if abs(current.x - neighbor.x) + abs(current.y - neighbor.y) == 2 else 1)
-
-			if tentative_g_score < g_score.get(neighbor, INF):
+		
+		#이웃 노드 조사
+		for neighbor in get_heighbors(current, grid_map, closed_set):
+			var tentative_g_score
+			if current.x != neighbor.x and current.y != neighbor.y:
+				tentative_g_score = g_score[current] + 14
+			else:
+				tentative_g_score = g_score[current] + 10
+			
+			# 이웃 노드가 처음 방문되었거나 더 좋은 경로가 발견되면 정보를 갱신합니다.
+			if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
 				came_from[neighbor] = current
 				g_score[neighbor] = tentative_g_score
-				var f_score = tentative_g_score + heuristic(neighbor, goal_position)
-				open_set.push(neighbor, f_score)
-
-	#return [] as Array[Vector2i]
-
-func set_random_target():
-	var current_position = tile_map.local_to_map(global_position)
-	var random_target = Vector2i(randi() % tile_map.get_used_rect().size.x, randi() % tile_map.get_used_rect().size.y)
-
-	random_target.x = clamp(random_target.x, 0, tile_map.get_used_rect().size.x - 1)
-	random_target.y = clamp(random_target.y, 0, tile_map.get_used_rect().size.y - 1)
-
-func wander(delta):
-	if needs_new_wander_path:
-		current_id_path.clear()
-		set_random_target()
-		needs_new_wander_path = false
+				f_score[neighbor] = tentative_g_score + heuristic(neighbor, goal)
+				open_set.push([f_score[neighbor], neighbor])
+				
+	return [] as Array[Vector2i]
+				
 		
-	if current_id_path.is_empty() == false:
-		var next_point = current_id_path.front()
-		if next_point != null:
-			var target_position = tile_map.map_to_local(next_point)
-			velocity = (target_position - global_position).normalized() * speed_wandering
-			if global_position.distance_to(target_position) < 1.0:
-				velocity = Vector2(0, 0)
-				global_position = target_position
-				current_id_path.pop_front()
 
-	if current_id_path.is_empty():
-		needs_new_wander_path = true
-		if wander_stop_timer.is_stopped():
-			wander_stop_timer.start()
-
-
-func chase_player(delta, chase_speed):#플레이어의 위치를 장애물 위치로 파악해서 날라가는 거일수도
-	# 최종 도착지점에 도달한 경우에만 새로운 경로를 계산
-	if current_id_path.is_empty():
-		# 플레이어의 현재 그리드 위치를 계산
-		var current_player_grid_position = tile_map.local_to_map(player.global_position)
-
-		# 경로를 재계산
-		var id_path = a_star(
-			tile_map.local_to_map(global_position),
-			Vector2i(3, 3)#current_player_grid_position
-		)
-		id_path.pop_back()  # 현재 위치를 나타내는 맨 뒤 번째 노드를 제거
-
-		# 경로가 유효하면 업데이트
-		if not id_path.is_empty():
-			current_id_path = id_path
-	print(current_id_path)
-	# 경로가 비어있다면 아무것도 하지 않음
-	if current_id_path.is_empty():
-		velocity = Vector2(0, 0)
-		return
-
-	# 현재 경로의 다음 목표 지점
-	var target_position = tile_map.map_to_local(current_id_path.back())
-	# 방향 설정
-	velocity = (target_position - global_position).normalized() * chase_speed
-
-	# 목표 위치에 도달했는지 확인 후 경로 업데이트
-	if global_position.distance_to(target_position) < 1:
-		global_position = target_position
-		current_id_path.pop_back()
-
-
-		# 최종 도착점에 도달했을 때, velocity를 0으로 설정
-		if current_id_path.is_empty():
-			velocity = Vector2(0, 0)
-			return
-	if not current_id_path.is_empty():
-		# 방향 설정
-		velocity = (target_position - global_position).normalized() * chase_speed
-
-#func chase_player(delta, chase_speed):
-	#if player:
-		#var id_path = a_star(
-			#tile_map.local_to_map(global_position),
-			#tile_map.local_to_map(player.global_position)
-		#).slice(1)
-#
-		#if id_path.is_empty() == false:
-			#current_id_path = id_path
-	#if current_id_path.is_empty():
-		#return
-#
-	#var target_position = tile_map.map_to_local(current_id_path.front())
-	#velocity = (target_position - global_position).normalized() * chase_speed
-#
-	#if global_position.distance_to(target_position) < 1.0:
-		#velocity = Vector2(0, 0)
-		#global_position = target_position
-		#current_id_path.pop_front()
+func get_heighbors(current: Vector2i, grid_map, closed_set):
+	var neighbors = []
+	for direction in DIRECTIONS:
+		var neighbor = current + direction
 		
-func chase_or_wander(delta):
-	if chase_timer.time_left > 0:
-		chase_player(delta, speed_chasing_far)
-	elif wander_timer.time_left > 0:
-		wander(delta)
-
-func _on_detect_area_2d_body_entered(body):
-	player = body
-	state = State.CHASING_FAR
-
-func _on_detect_area_2d_body_exited(body):
-	pass
-	#player = null
-	#current_id_path.clear()
-	#state = State.WANDERING
-	#needs_new_wander_path = true
+		# 대각선 이동을 할 때, 직선 이동이 모두 가능한지 확인
+		if abs(direction.x) == 1 and abs(direction.x) == 1:
+			var adjacent1 = Vector2i(current.x + direction.x, current.y)
+			var adjacent2 = Vector2i(current.x, current.y + direction.y)
+			# 만약 직선 방향의 둘 중 하나라도 벽(장애물)이라면, 대각선 이동을 막습니다.
+			if not (is_walkable(adjacent1, grid_map) and is_walkable(adjacent2, grid_map)):
+				continue
+		if is_walkable(neighbor, grid_map) and neighbor not in closed_set:
+			neighbors.append(neighbor)
 	
-func _on_detect_close_area_2d_body_entered(body):
-	state = State.CHASING_CLOSE
+	return neighbors as Array[Vector2i]
+				
+func heuristic(node: Vector2i, goal: Vector2i):
+	var dx = abs(node.x - goal.x)
+	var dy = abs(node.y - goal.y)
+	return 10 * (dx + dy) + (14 - 2 * 10) * min(dx, dy)
 
-func _on_detect_close_area_2d_body_exited(body):
-	state = State.CHASING_FAR
+func is_walkable(node: Vector2i, grid_map):
+	#맵 밖이나 벽이 아니라면 True
+	return 0 <= node.x and node.x < GRID_SIZE[0] and 0 <= node.y and node.y < GRID_SIZE[1] and not grid_map[node]["wall"]
 
-func _on_chase_timer_timeout():
-	wander_timer.start()
-	needs_new_wander_path = true
-	
-func _on_wander_timer_timeout():
-	chase_timer.start()
-
-func _on_wander_stop_timer_timeout():
-	pass
+func print_grid(grid_map, path: Array[Vector2i]):
+	var output = ""
+	for y in range(GRID_SIZE.y):
+		for x in range(GRID_SIZE.x):
+			if path and Vector2i(x, y) in path:
+				output += "P"  # 경로가 지나가는 곳은 'P'로 표시
+			elif grid_map[Vector2i(x, y)]["wall"]:
+				output += "#"  # 장애물은 '#'으로 표시
+			else:
+				output += "."  # 이동 가능한 곳은 '.'로 표시
+		output += "\n"
+	print(output)
