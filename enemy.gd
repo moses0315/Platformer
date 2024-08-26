@@ -40,17 +40,7 @@ var state = State.WANDERING
 func _ready():
 	tile_size = tile_map.tile_set.tile_size.x
 	setup_grid_from_tilemap(tile_map)
-func _draw():
-	# 경로가 비어있지 않을 때만 시각화
-	if not current_id_path.is_empty():
-		# 첫 번째 위치를 현재 캐릭터의 위치로 설정
-		var previous_point = global_position
 
-		# 경로를 따라 선을 그림
-		for path_point in current_id_path:
-			var target_position = tile_map.map_to_local(path_point)
-			draw_line(previous_point, target_position, Color(1, 0, 0), 2)
-			previous_point = target_position
 
 func _physics_process(delta):
 	match state:
@@ -75,6 +65,7 @@ func setup_grid_from_tilemap(tile_map):
 				x + used_rect.position.x,
 				y + used_rect.position.y
 			)
+			print([used_rect.position.x, used_rect.position.y])
 			var tile_data = tile_map.get_cell_tile_data(0, tile_position)
 			if tile_data == null or tile_data.get_custom_data("walkable") == true:
 				grid_map[tile_position] = {"walkable": true}

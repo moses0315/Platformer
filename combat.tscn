@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://db0b0bba334h7"]
+[gd_scene load_steps=12 format=3 uid="uid://db0b0bba334h7"]
 
 [ext_resource type="Texture2D" uid="uid://drv684yv8sjln" path="res://FreeCuteTileset/BG1.png" id="1_5yw87"]
 [ext_resource type="Texture2D" uid="uid://fs28m6m5l656" path="res://FreeCuteTileset/Tileset.png" id="1_c4ou4"]
@@ -6,6 +6,8 @@
 [ext_resource type="PackedScene" uid="uid://b3p2sul357641" path="res://player.tscn" id="2_b0pjp"]
 [ext_resource type="Texture2D" uid="uid://bs0a4bc5gr7ro" path="res://FreeCuteTileset/BG3.png" id="3_b1oe7"]
 [ext_resource type="PackedScene" uid="uid://cis4t00dagbvu" path="res://enemy.tscn" id="3_j8mdx"]
+[ext_resource type="Script" path="res://new_enemy.gd" id="7_tk6iy"]
+[ext_resource type="Texture2D" uid="uid://bkdt5gfftmdfn" path="res://icon.svg" id="8_1aeew"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_rsy0q"]
 texture = ExtResource("1_c4ou4")
@@ -209,6 +211,8 @@ custom_data_layer_0/name = "walkable"
 custom_data_layer_0/type = 1
 sources/1 = SubResource("TileSetAtlasSource_rsy0q")
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_sjs6y"]
+
 [node name="Combat" type="Node2D"]
 
 [node name="Bg1" type="Sprite2D" parent="."]
@@ -237,8 +241,21 @@ position = Vector2(103, 172)
 
 [node name="Enemy" parent="." instance=ExtResource("3_j8mdx")]
 position = Vector2(409, 275)
+script = null
 
-[node name="Node" type="Node" parent="."]
+[node name="Node" type="CharacterBody2D" parent="."]
+position = Vector2(688, 400)
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("7_tk6iy")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Node"]
+shape = SubResource("RectangleShape2D_sjs6y")
+
+[node name="Sprite2D" type="Sprite2D" parent="Node"]
+modulate = Color(1, 0, 0, 1)
+scale = Vector2(0.2, 0.2)
+texture = ExtResource("8_1aeew")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 zoom = Vector2(1.5, 1.5)

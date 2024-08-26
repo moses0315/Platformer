@@ -1,44 +1,40 @@
 extends Node
 
-class_name _MinHeap
+class_name MinHeap
 
 var heap = []
 
 func _init():
 	heap = []
 
-# 우선순위와 함께 아이템을 푸시할 수 있도록 수정된 push 메서드
-func push(item, priority):
-	heap.append({"item": item, "priority": priority})
+func push(value):
+	heap.append(value)
 	_heapify_up(heap.size() - 1)
 
-# pop 메서드에서 우선순위가 가장 높은(작은) 아이템을 반환
 func pop():
 	var min_value = null
-
 	if heap.size() > 1:
 		_swap(0, heap.size() - 1)
-		min_value = heap.pop_back()["item"]
+		min_value = heap.pop_back()
 		_heapify_down(0)
 	elif heap.size() == 1:
-		return heap.pop_back()["item"]
-		
+		min_value = heap.pop_back()
 	return min_value
 
 func _heapify_up(index):
 	var parent_index = int((index - 1) / 2)
-	while index > 0 and heap[index]["priority"] < heap[parent_index]["priority"]:
+	if index > 0 and heap[index] < heap[parent_index]:
 		_swap(index, parent_index)
-		index = parent_index
+		_heapify_up(parent_index)
 
 func _heapify_down(index):
 	var left_child_index = 2 * index + 1
 	var right_child_index = 2 * index + 2
 	var smallest = index
 
-	if left_child_index < heap.size() and heap[left_child_index]["priority"] < heap[smallest]["priority"]:
+	if left_child_index < heap.size() and heap[left_child_index] < heap[smallest]:
 		smallest = left_child_index
-	if right_child_index < heap.size() and heap[right_child_index]["priority"] < heap[smallest]["priority"]:
+	if right_child_index < heap.size() and heap[right_child_index] < heap[smallest]:
 		smallest = right_child_index
 
 	if smallest != index:
