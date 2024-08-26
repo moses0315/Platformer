@@ -1,7 +1,9 @@
 extends CharacterBody2D
 
 var min_heap_class = preload("res://new_min_heap.gd")
+@onready var player = $"../Player"
 @onready var tile_map = $"../TileMap"
+var goal
 var speed = 100
 var grid_map = {}
 var path: Array[Vector2i]
@@ -16,10 +18,8 @@ const GRID_SIZE = Vector2i(48, 27)
 const TILE_SIZE = 16
 
 func _ready():
+	goal = tile_map.local_to_map(player.global_position)
 	set_grid_map(tile_map)
-	var start = Vector2i(43, 25)  # 시작점
-	var goal = Vector2i(3, 3) # 목표점
-	print_grid(grid_map, a_star(start, goal, grid_map))
 	
 func _physics_process(delta):
 	move(speed)
@@ -27,13 +27,21 @@ func _physics_process(delta):
 
 func move(speed):
 	if path.is_empty():#첫번째에만 실행
-		var start = Vector2i(43, 25)  # 시작점
-		var goal = Vector2i(3, 3) # 목표점
-		path = a_star(start, goal, grid_map).slice(1)#시작점도 경로에 포함되므로 첫번째 경로를 삭제
-		current_path = path
-		print("enpty")
-	
-	if current_path.is_empty():#도착했으면 종료
+		#var start = Vector2i(43, 25)  # 시작점
+		#var goal = Vector2i(3, 3) # 목표점
+		#path = a_star(start, goal, grid_map)
+		var start = tile_map.local_to_map(global_position)
+		goal = tile_map.local_to_map(player.global_position)
+		path = a_star(start, goal, grid_map)
+		current_path = path.slice(1)#path를 복사, 시작점도 경로에 포함되므로 첫번째 경로를 삭제
+		
+		print_grid(grid_map, path)
+		
+	if goal != tile_map.local_to_map(player.global_position):#플레이어 위치 바뀌면 path 초기화
+		path = []
+		return
+	elif current_path.is_empty():#도착했으면 종료
+		path = []
 		return
 
 	var next_target = tile_map.map_to_local(current_path.front())
@@ -78,7 +86,7 @@ func a_star(start: Vector2i, goal: Vector2i, grid_map):
 			while current in came_from:
 				current = came_from[current]
 				path.append(current)
-				path.reverse()
+			path.reverse()
 			return path
 			
 		closed_set[current] = true
