@@ -3,6 +3,7 @@ extends CharacterBody2D
 var min_heap_class = preload("res://min_heap.gd")
 @onready var player = $"../Player"
 @onready var tile_map = $"../TileMap"
+@onready var animation_sprite = $AnimatedSprite2D
 enum GoalDirection {LEFT, RIGHT, UP, DOWN}
 enum State {WANDERING, CHASING_FAR, CHASING_CLOSE}
 var goal
@@ -20,6 +21,7 @@ const GRID_SIZE = Vector2i(58, 27)
 const TILE_SIZE = 16
 
 func _ready():
+	animation_sprite.play("attack")
 	goal = tile_map.local_to_map(player.global_position)
 	set_grid_map(tile_map)
 	

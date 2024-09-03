@@ -1,8 +1,12 @@
 extends CharacterBody2D
 @export var target_direction = "center"
 var min_heap_class = preload("res://min_heap.gd")
-@onready var player = $"../Player"
+
+@onready var player = null
 @onready var tile_map = $"../TileMap"
+@onready var animation_sprite = $AnimatedSprite2D
+@onready var animation_player = $AnimationPlayer
+@onready var health_bar = $HealthBar
 enum GoalDirection {LEFT, RIGHT, UP, DOWN}
 enum State {WANDERING, CHASING_FAR, CHASING_CLOSE}
 var goal
@@ -19,35 +23,62 @@ const DIRECTIONS = [
 const GRID_SIZE = Vector2i(58, 27)
 const TILE_SIZE = 16
 
+var can_attack = true
+var player_in_attack_range = false
+var attack_power = 10
+var health = 50
+
+var knuckback_timer = 0.0
+var knuckback_direction
 func _ready():
-	goal = tile_map.local_to_map(player.global_position)
+	animation_sprite.play("idle")
+	health_bar.max_value = health
+	health_bar.value = health
 	set_grid_map(tile_map)
 	
 func _physics_process(delta):
-	move(delta, speed)
+	if knuckback_timer > 0: 
+		knuckback_timer -= delta
+		velocity.x = knuckback_direction * 1000
+		move_and_slide()
+		return
+	else:
+		velocity = Vector2(0, 0)
+	move(speed)
+	if player_in_attack_range and can_attack:
+		attack()
 	move_and_slide()
 
-func move(delta, speed):
-	if path.is_empty():#첫번째에만 실행
-		var start = tile_map.local_to_map(global_position)
-		goal = set_goal()#tile_map.local_to_map(player.global_position)
-		path = a_star(start, goal, grid_map)
-		current_path = path.slice(1)#path를 복사, 시작점도 경로에 포함되므로 첫번째 경로를 삭제
-		#print_grid(grid_map, path)
-
-	if goal != set_goal() and target_direction != "center":#플레이어 위치 바뀌면 path 초기화
-		path = []
+func attack():
+	can_attack = false
+	$AttackTimer.start()
+	animation_player.play("attack")
+	
+func move(speed):
+	if player:
+		if path.is_empty():#첫번째에만 실행
+			var start = tile_map.local_to_map(global_position)
+			goal = set_goal()#tile_map.local_to_map(player.global_position)
+			path = a_star(start, goal, grid_map)
+			current_path = path.slice(1)#path를 복사, 시작점도 경로에 포함되므로 첫번째 경로를 삭제
+			#print_grid(grid_map, path)
+			
+		if goal != set_goal():#플레이어 위치 바뀌면 path 초기화
+			path = []
 	if current_path.is_empty():#도착했으면 종료
 		path = []
+		#다음 목표는 target_position이 아닌 player position
 		return
 
 	var next_target = tile_map.map_to_local(current_path.front())
 	velocity = (next_target - global_position).normalized() * speed
-
-	if global_position.distance_to(next_target) < 1:
+	if velocity.x > 0:
+		animation_sprite.scale.x = 1
+	elif velocity.x < 0:
+		animation_sprite.scale.x = -1
+	if global_position.distance_to(next_target) < 10:
 		velocity = Vector2(0, 0)
 		current_path.pop_front()
-
 			
 func set_grid_map(tile_map):
 	var used_rect = tile_map.get_used_rect()
@@ -83,6 +114,8 @@ func set_goal():
 	return player_position  # 모든 타일이 벽일 경우, 플레이어 위치 반환
 
 func a_star(start: Vector2i, goal: Vector2i, grid_map):
+	#경로를 덱 방식으로 바꾸기
+	#open_set에 중복 추가되는 노드 삭제하기
 	var open_set = min_heap_class.new()
 	open_set.push([0, start])
 	
@@ -107,7 +140,7 @@ func a_star(start: Vector2i, goal: Vector2i, grid_map):
 		closed_set[current] = true
 		
 		#이웃 노드 조사
-		for neighbor in get_heighbors(current, grid_map, closed_set):
+		for neighbor in get_neighbors(current, grid_map, closed_set):
 			var tentative_g_score
 			if current.x != neighbor.x and current.y != neighbor.y:
 				tentative_g_score = g_score[current] + 14
@@ -125,22 +158,45 @@ func a_star(start: Vector2i, goal: Vector2i, grid_map):
 				
 		
 
-func get_heighbors(current: Vector2i, grid_map, closed_set):
+func get_neighbors(current: Vector2i, grid_map, closed_set):
 	var neighbors = []
+	
 	for direction in DIRECTIONS:
 		var neighbor = current + direction
 		
-		# 대각선 이동을 할 때, 직선 이동이 모두 가능한지 확인
-		if abs(direction.x) == 1 and abs(direction.x) == 1:
+		# Check for diagonal movement
+		if abs(direction.x) == 1 and abs(direction.y) == 1:
 			var adjacent1 = Vector2i(current.x + direction.x, current.y)
 			var adjacent2 = Vector2i(current.x, current.y + direction.y)
-			# 만약 직선 방향의 둘 중 하나라도 벽(장애물)이라면, 대각선 이동을 막습니다.
-			if not (is_walkable(adjacent1, grid_map) and is_walkable(adjacent2, grid_map)):
+			var adjacent3 = Vector2i(current.x + direction.x, current.y + 1)
+			var adjacent4 = Vector2i(current.x, current.y + 1 + direction.y)
+			
+			# If any of the straight or diagonal blocks are obstacles, continue to the next direction
+			if not (is_walkable(adjacent1, grid_map) and is_walkable(adjacent2, grid_map) and
+					is_walkable(adjacent3, grid_map) and is_walkable(adjacent4, grid_map)):
 				continue
+				
+		# Check for vertical movement
+		elif direction.y != 0:
+			var next_row = current.y + direction.y
+			if not is_walkable(Vector2i(current.x, next_row), grid_map) or \
+			   not is_walkable(Vector2i(current.x, next_row + 1), grid_map):
+				continue
+				
+		# Check for horizontal movement
+		elif direction.x != 0:
+			var next_col = current.x + direction.x
+			if not is_walkable(Vector2i(next_col, current.y), grid_map) or \
+			   not is_walkable(Vector2i(next_col, current.y + 1), grid_map):
+				continue
+				
+		# If all checks pass, add the neighbor
 		if is_walkable(neighbor, grid_map) and neighbor not in closed_set:
 			neighbors.append(neighbor)
 	
 	return neighbors as Array[Vector2i]
+
+
 				
 func heuristic(node: Vector2i, goal: Vector2i):
 	var dx = abs(node.x - goal.x)
@@ -163,3 +219,39 @@ func print_grid(grid_map, path: Array[Vector2i]):
 				output += "."  # 이동 가능한 곳은 '.'로 표시
 		output += "\n"
 	print(output)
+
+func take_damage(damage, direction):
+	knuckback_timer = 0.02
+	knuckback_direction = direction
+	health -= damage
+	health_bar.value = health
+	if health <= 0:
+		queue_free()
+	animation_sprite.set_modulate(Color(1000, 1000, 1000))
+	await get_tree().create_timer(0.15).timeout
+	animation_sprite.set_modulate(Color(0.5, 0.5, 0.5))
+		
+func _on_attack_timer_timeout():
+	can_attack = true
+
+func _on_attack_range_area_2d_body_entered(body):
+	player_in_attack_range = true
+
+func _on_attack_range_area_2d_body_exited(body):
+	player_in_attack_range = false
+
+func _on_attack_area_2d_body_entered(body):
+	body.take_damage(attack_power)
+
+
+func _on_animation_player_animation_finished(anim_name):
+	if anim_name == "attack":
+		animation_sprite.play("idle")
+
+
+func _on_detect_area_2d_body_entered(body):
+	player = body
+
+
+func _on_detect_area_2d_body_exited(body):
+	player = null
