@@ -14,10 +14,8 @@ var is_sliding = false
 var gravity = ProjectSettings.get_setting("physics/2d/default_gravity")
 
 # 버퍼링 입력 및 코요테 타임 관련 변수
-#var jump_buffer_time = 0.15  # 150ms 버퍼링 입력 시간
-#var coyote_time = 0.25  # 250ms 코요테 타임
-@onready var jump_buffer_timer = $JumpBufferTimer#0.0
-@onready var coyote_timer = $CoyoteTimer#0.0
+@onready var jump_buffer_timer = $JumpBufferTimer
+@onready var coyote_timer = $CoyoteTimer
 @onready var animaition_player = $AnimationPlayer
 @onready var animated_sprite = $AnimatedSprite2D
 @onready var health_bar = $HealthBar
@@ -27,8 +25,6 @@ func _ready():
 	health_bar.value = health
 	
 func _physics_process(delta):
-
-
 	# Add the gravity.
 	if not is_on_floor():
 		velocity.y += gravity * delta

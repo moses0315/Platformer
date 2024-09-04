@@ -3,7 +3,7 @@ extends CharacterBody2D
 var min_heap_class = preload("res://min_heap.gd")
 @onready var player = $"../Player"
 @onready var tile_map = $"../TileMap"
-@onready var animation_sprite = $AnimatedSprite2D
+@onready var animated_sprite = $AnimatedSprite2D
 enum GoalDirection {LEFT, RIGHT, UP, DOWN}
 enum State {WANDERING, CHASING_FAR, CHASING_CLOSE}
 var goal
@@ -21,15 +21,15 @@ const GRID_SIZE = Vector2i(58, 27)
 const TILE_SIZE = 16
 
 func _ready():
-	animation_sprite.play("attack")
+	animated_sprite.play("attack")
 	goal = tile_map.local_to_map(player.global_position)
 	set_grid_map(tile_map)
 	
 func _physics_process(delta):
-	move(delta, speed)
+	move(speed)
 	move_and_slide()
 
-func move(delta, speed):
+func move(speed):
 	if path.is_empty():#첫번째에만 실행
 		var start = tile_map.local_to_map(global_position)
 		goal = set_goal()#tile_map.local_to_map(player.global_position)
@@ -37,7 +37,7 @@ func move(delta, speed):
 		current_path = path.slice(1)#path를 복사, 시작점도 경로에 포함되므로 첫번째 경로를 삭제
 		#print_grid(grid_map, path)
 
-	if goal != set_goal() and target_direction != "center":#플레이어 위치 바뀌면 path 초기화
+	if goal != set_goal():#플레이어 위치 바뀌면 path 초기화
 		path = []
 	if current_path.is_empty():#도착했으면 종료
 		path = []
@@ -67,7 +67,7 @@ func set_grid_map(tile_map):
 				grid_map[tile_position] = {"wall": true}
 				
 func set_goal():
-	var goal_directions = {
+	var GOAL_DIRECTIONS = {
 		"left":  [Vector2i(-4, 0), Vector2i(-3, 0), Vector2i(-2, 0), Vector2i(-1, 0)],
 		"right": [Vector2i(4, 0), Vector2i(3, 0), Vector2i(2, 0), Vector2i(1, 0)],
 		"up":    [Vector2i(0, -4), Vector2i(0, -3), Vector2i(0, -2), Vector2i(0, -1)],
@@ -76,7 +76,7 @@ func set_goal():
 	}
 
 	var player_position = tile_map.local_to_map(player.global_position)
-	for offset in goal_directions[target_direction]:
+	for offset in GOAL_DIRECTIONS[target_direction]:
 		var target_tile = player_position + offset
 
 		if is_walkable(target_tile, grid_map):
@@ -93,10 +93,12 @@ func a_star(start: Vector2i, goal: Vector2i, grid_map):
 	var f_score = {start: heuristic(start, goal)}
 	
 	var closed_set = {}
-
+	var tile_check_count = 0  # 타일 검사 개수 추적용 변수
 	while not open_set.is_empty():
 		var current = open_set.pop()[1]
-
+		# 타일 검사 개수가 100개를 넘으면 경고 메시지 출력
+		if tile_check_count > 1100:
+			print("경고: 타일 검사 개수가 많습니다! (", tile_check_count, "개)")
 		#경로를 다 찾았으면 경로 재구성 후 종료
 		if current == goal:
 			var path = [current] as Array[Vector2i]

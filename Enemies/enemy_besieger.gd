@@ -4,12 +4,13 @@ var min_heap_class = preload("res://min_heap.gd")
 
 @onready var player = null
 @onready var tile_map = $"../TileMap"
-@onready var animation_sprite = $AnimatedSprite2D
+@onready var animated_sprite = $AnimatedSprite2D
 @onready var animation_player = $AnimationPlayer
 @onready var health_bar = $HealthBar
-enum GoalDirection {LEFT, RIGHT, UP, DOWN}
+
 enum State {WANDERING, CHASING_FAR, CHASING_CLOSE}
 var goal
+var previous_goal = Vector2i(-1, -1)  # 이전 목표 위치를 저장하는 변수
 var speed = 100
 var grid_map = {}
 var path: Array[Vector2i]
@@ -20,18 +21,27 @@ const DIRECTIONS = [
 	Vector2i(1, 1), Vector2i(-1, -1),
 	Vector2i(1, -1), Vector2i(-1, 1)
 ]
+const GOAL_DIRECTIONS = {
+	"left":  [Vector2i(-4, 0), Vector2i(-3, 0), Vector2i(-2, 0), Vector2i(-1, 0), Vector2i(0, 0)],
+	"right": [Vector2i(4, 0), Vector2i(3, 0), Vector2i(2, 0), Vector2i(1, 0), Vector2i(0, 0)],
+	"up":    [Vector2i(0, -4), Vector2i(0, -3), Vector2i(0, -2), Vector2i(0, -1), Vector2i(0, 0)],
+	"down":  [Vector2i(0, 4), Vector2i(0, 3), Vector2i(0, 2), Vector2i(0, 1), Vector2i(0, 0)],
+	"center":[Vector2i(0, 0)] 
+}
 const GRID_SIZE = Vector2i(58, 27)
 const TILE_SIZE = 16
 
 var can_attack = true
 var player_in_attack_range = false
 var attack_power = 10
+var is_attacking = false
 var health = 50
 
+var is_close_to_player = false
 var knuckback_timer = 0.0
 var knuckback_direction
 func _ready():
-	animation_sprite.play("idle")
+	animated_sprite.play("idle")
 	health_bar.max_value = health
 	health_bar.value = health
 	set_grid_map(tile_map)
@@ -44,27 +54,39 @@ func _physics_process(delta):
 		return
 	else:
 		velocity = Vector2(0, 0)
+
 	move(speed)
 	if player_in_attack_range and can_attack:
 		attack()
 	move_and_slide()
 
 func attack():
+	is_attacking = true
 	can_attack = false
 	$AttackTimer.start()
 	animation_player.play("attack")
 	
 func move(speed):
 	if player:
-		if path.is_empty():#첫번째에만 실행
-			var start = tile_map.local_to_map(global_position)
+		#if path.is_empty():#첫번째에만 실행
+		var start = tile_map.local_to_map(global_position)
+		is_close_to_player = false
+		for i in GOAL_DIRECTIONS[target_direction]:
+			if tile_map.local_to_map(global_position) == tile_map.local_to_map(player.global_position)+i:
+				is_close_to_player = true
+		if not is_close_to_player or target_direction == "down":
 			goal = set_goal()#tile_map.local_to_map(player.global_position)
+		else:
+			goal = tile_map.local_to_map(player.global_position)
+					# 새로운 목표 위치가 이전 목표 위치와 다르면 경로 초기화
+		if goal != previous_goal:
 			path = a_star(start, goal, grid_map)
-			current_path = path.slice(1)#path를 복사, 시작점도 경로에 포함되므로 첫번째 경로를 삭제
-			#print_grid(grid_map, path)
-			
-		if goal != set_goal():#플레이어 위치 바뀌면 path 초기화
-			path = []
+			current_path = path.slice(1)
+			previous_goal = goal  # 현재 목표 위치를 저장
+		#print_grid(grid_map, path)
+		
+		#if goal != set_goal():#플레이어 위치 바뀌면 path 초기화
+			#path = []
 	if current_path.is_empty():#도착했으면 종료
 		path = []
 		#다음 목표는 target_position이 아닌 player position
@@ -72,14 +94,40 @@ func move(speed):
 
 	var next_target = tile_map.map_to_local(current_path.front())
 	velocity = (next_target - global_position).normalized() * speed
-	if velocity.x > 0:
-		animation_sprite.scale.x = 1
-	elif velocity.x < 0:
-		animation_sprite.scale.x = -1
-	if global_position.distance_to(next_target) < 10:
+	if not is_attacking:
+		if velocity.x < 0:
+			animated_sprite.scale.x = -1
+		elif velocity.x > 0:
+			animated_sprite.scale.x = 1
+	if global_position.distance_to(next_target) < 4:
 		velocity = Vector2(0, 0)
 		current_path.pop_front()
-			
+#func move(speed):
+	#if player:
+		#var start = tile_map.local_to_map(global_position)
+		#if not is_close_to_player:
+			#print("123456789")
+			#goal = set_goal()#tile_map.local_to_map(player.global_position)
+		#else:
+			#print("not!!")
+			#goal = tile_map.local_to_map(player.global_position)
+		#path = a_star(start, goal, grid_map)
+		#current_path = path.slice(1)#path를 복사, 시작점도 경로에 포함되므로 첫번째 경로를 삭제
+		##print_grid(grid_map, path)
+		#
+	#if current_path.is_empty():#도착했으면 종료
+		#return
+	#var next_target = tile_map.map_to_local(current_path.front())
+	#velocity = (next_target - global_position).normalized() * speed
+	#if not is_attacking:
+		#if velocity.x < 0:
+			#animated_sprite.scale.x = -1
+		#elif velocity.x > 0:
+			#animated_sprite.scale.x = 1
+	#if global_position.distance_to(next_target) < 10:
+		#velocity = Vector2(0, 0)
+		#current_path.pop_front()
+		
 func set_grid_map(tile_map):
 	var used_rect = tile_map.get_used_rect()
 
@@ -96,21 +144,12 @@ func set_grid_map(tile_map):
 				grid_map[tile_position] = {"wall": true}
 				
 func set_goal():
-	var goal_directions = {
-		"left":  [Vector2i(-4, 0), Vector2i(-3, 0), Vector2i(-2, 0), Vector2i(-1, 0)],
-		"right": [Vector2i(4, 0), Vector2i(3, 0), Vector2i(2, 0), Vector2i(1, 0)],
-		"up":    [Vector2i(0, -4), Vector2i(0, -3), Vector2i(0, -2), Vector2i(0, -1)],
-		"down":  [Vector2i(0, 4), Vector2i(0, 3), Vector2i(0, 2), Vector2i(0, 1)],
-		"center":[Vector2i(0, 0)] 
-	}
-
 	var player_position = tile_map.local_to_map(player.global_position)
-	for offset in goal_directions[target_direction]:
+	for offset in GOAL_DIRECTIONS[target_direction]:
 		var target_tile = player_position + offset
 
-		if is_walkable(target_tile, grid_map):
+		if is_walkable(target_tile, grid_map) and is_walkable(target_tile+Vector2i(0,1), grid_map):
 			return target_tile# 벽이 아닌 타일을 찾으면 해당 타일을 목표로 설정
-
 	return player_position  # 모든 타일이 벽일 경우, 플레이어 위치 반환
 
 func a_star(start: Vector2i, goal: Vector2i, grid_map):
@@ -124,10 +163,16 @@ func a_star(start: Vector2i, goal: Vector2i, grid_map):
 	var f_score = {start: heuristic(start, goal)}
 	
 	var closed_set = {}
+	var tile_check_count = 0  # 타일 검사 개수 추적용 변수
 
 	while not open_set.is_empty():
 		var current = open_set.pop()[1]
+		# 타일 검사 카운트 증가
+		tile_check_count += 1
 
+		# 타일 검사 개수가 100개를 넘으면 경고 메시지 출력
+		#if tile_check_count > 1100:
+			#print("경고: 타일 검사 개수가 많습니다! (", tile_check_count, "개)")
 		#경로를 다 찾았으면 경로 재구성 후 종료
 		if current == goal:
 			var path = [current] as Array[Vector2i]
@@ -196,7 +241,22 @@ func get_neighbors(current: Vector2i, grid_map, closed_set):
 	
 	return neighbors as Array[Vector2i]
 
-
+#func get_neighbors(current: Vector2i, grid_map, closed_set):
+	#var neighbors = []
+	#for direction in DIRECTIONS:
+		#var neighbor = current + direction
+		#
+		## 대각선 이동을 할 때, 직선 이동이 모두 가능한지 확인
+		#if abs(direction.x) == 1 and abs(direction.x) == 1:
+			#var adjacent1 = Vector2i(current.x + direction.x, current.y)
+			#var adjacent2 = Vector2i(current.x, current.y + direction.y)
+			## 만약 직선 방향의 둘 중 하나라도 벽(장애물)이라면, 대각선 이동을 막습니다.
+			#if not (is_walkable(adjacent1, grid_map) and is_walkable(adjacent2, grid_map)):
+				#continue
+		#if is_walkable(neighbor, grid_map) and neighbor not in closed_set:
+			#neighbors.append(neighbor)
+	#
+	#return neighbors as Array[Vector2i]
 				
 func heuristic(node: Vector2i, goal: Vector2i):
 	var dx = abs(node.x - goal.x)
@@ -227,9 +287,9 @@ func take_damage(damage, direction):
 	health_bar.value = health
 	if health <= 0:
 		queue_free()
-	animation_sprite.set_modulate(Color(1000, 1000, 1000))
+	animated_sprite.set_modulate(Color(1000, 1000, 1000))
 	await get_tree().create_timer(0.15).timeout
-	animation_sprite.set_modulate(Color(0.5, 0.5, 0.5))
+	animated_sprite.set_modulate(Color(1, 1, 1))
 		
 func _on_attack_timer_timeout():
 	can_attack = true
@@ -246,7 +306,8 @@ func _on_attack_area_2d_body_entered(body):
 
 func _on_animation_player_animation_finished(anim_name):
 	if anim_name == "attack":
-		animation_sprite.play("idle")
+		is_attacking = false
+		animated_sprite.play("idle")
 
 
 func _on_detect_area_2d_body_entered(body):
@@ -255,3 +316,11 @@ func _on_detect_area_2d_body_entered(body):
 
 func _on_detect_area_2d_body_exited(body):
 	player = null
+
+
+#func _on_detect_close_area_2d_body_entered(body):
+	#is_close_to_player = true
+#
+#
+#func _on_detect_close_area_2d_body_exited(body):
+	#is_close_to_player = false

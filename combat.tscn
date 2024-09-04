@@ -251,4 +251,17 @@ theme_override_font_sizes/font_size = 100
 text = "You sould be ashamed that not trusting yourself."
 
 [node name="EnemyBesieger" parent="." instance=ExtResource("7_j0m6c")]
-position = Vector2(262, 251)
+position = Vector2(263, 268)
+target_direction = "up"
+
+[node name="EnemyBesieger4" parent="." instance=ExtResource("7_j0m6c")]
+position = Vector2(263, 268)
+target_direction = "down"
+
+[node name="EnemyBesieger2" parent="." instance=ExtResource("7_j0m6c")]
+position = Vector2(263, 268)
+target_direction = "left"
+
+[node name="EnemyBesieger3" parent="." instance=ExtResource("7_j0m6c")]
+position = Vector2(263, 268)
+target_direction = "right"
