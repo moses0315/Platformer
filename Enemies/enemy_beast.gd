@@ -326,9 +326,9 @@ func _on_detect_area_2d_body_exited(body):
 	animated_sprite.play("idle")
 
 
-#func _on_detect_close_area_2d_body_entered(body):
-	#is_close_to_player = true
-#
-#
-#func _on_detect_close_area_2d_body_exited(body):
-	#is_close_to_player = false
+func _on_detect_close_area_2d_body_entered(body):
+	is_close_to_player = true
+
+
+func _on_detect_close_area_2d_body_exited(body):
+	is_close_to_player = false

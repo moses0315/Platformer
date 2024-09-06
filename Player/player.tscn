@@ -1,4 +1,4 @@
-[gd_scene load_steps=67 format=3 uid="uid://b3p2sul357641"]
+[gd_scene load_steps=66 format=3 uid="uid://b3p2sul357641"]
 
 [ext_resource type="Script" path="res://Player/player.gd" id="1_87k1r"]
 [ext_resource type="Texture2D" uid="uid://cbrfuhd0owmhj" path="res://Assets/Colour1/Outline/120x80_PNGSheets/_Idle.png" id="2_akb58"]
@@ -359,10 +359,6 @@ animations = [{
 "speed": 10.0
 }]
 
-[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_msmjs"]
-radius = 22.0
-height = 52.0
-
 [sub_resource type="Animation" id="Animation_p5x6e"]
 length = 0.001
 tracks/0/type = "value"
@@ -677,10 +673,10 @@ position = Vector2(0, 18)
 collision_layer = 0
 collision_mask = 2
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="AnimatedSprite2D/AttackArea2D"]
-position = Vector2(21, 1)
+[node name="CollisionShape2D" type="CollisionPolygon2D" parent="AnimatedSprite2D/AttackArea2D"]
+position = Vector2(23, 0)
 rotation = 1.5708
-shape = SubResource("CapsuleShape2D_msmjs")
+polygon = PackedVector2Array(-12.9998, 43, -22, 10.0001, -17, -9.99994, -2.00007, -20, 8.99992, -22, 19.9999, -18.0001, 12, 11)
 disabled = true
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]

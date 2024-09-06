@@ -1,15 +1,40 @@
-공격중에는 방향 못바꿈
-공격 판정을 확실하게, 불만 없게
-점프를 is_pressed로 하면 의도치 않게 한번 더 할 수 있으니 just_pressed로
-모티스 류 캐릭터 vs 지상 캐릭터(얼음 군주)
-추격자(아젤룸), 포위자(어쎄신), 
+메인 메뉴:
+	맵:
+		챕터 선택:
+			스테이지 선택
+	설정:
+		BGM
+		SoundEffect
+		조작키 변경
+		언어 변경
+		화면 크기 변경
+	종료
+	
 
-바닥에서 점프 없이 싸우는 것을 예방하기 위해:
-	포위자를 계속 추가하여 포위 탈출을 위해 점프를 하도록 만든다
-	밑바닥에 강력한 적(야수, 굼뱅이패턴)를 배치한다. 강력한 적을 이기면 큰 보상
+class Animation
 
-플레이어 피격시 넉백
-버그: desieger center 이외 방향 선택시 가끔씩 매우 느려짐
+#Character
 
-그냥 공격 범위 안에 있으면 공격하는 것이 아니라,
-이동 방향, 플레이어의 방향/이동방향 등을 고려해서 공격 범위를 바꿈
+class Player:
+	speed, power, skills
+	class PlayerWarrior
+	class PlayerFighter
+
+class Enemy:
+	speed, power, skills, attack_pattern, move_pattern
+	def a_star
+	class EnemyChaser
+	class EnemyBeast
+	class Boss:
+		speed, power, skills, attack_pattern, move_pattern
+		class BossAzelum
+		class BossLord
+
+
+#Map
+class Tilemap
+
+#Menu
+
+
+

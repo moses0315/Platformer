@@ -2,14 +2,15 @@ extends CharacterBody2D
 
 const SPEED = 300.0
 const JUMP_VELOCITY = -400.0
-var health = 50
+var health = 70
 
 var attack_power = 10
 var attack_ready = true
 var is_attacking = false
 var slide_ready = true
 var is_sliding = false
-
+var knuckback_timer = 0.0
+var knuckback_direction
 # Get the gravity from the project settings to be synced with RigidBody nodes.
 var gravity = ProjectSettings.get_setting("physics/2d/default_gravity")
 
@@ -25,6 +26,12 @@ func _ready():
 	health_bar.value = health
 	
 func _physics_process(delta):
+	if knuckback_timer > 0: 
+		knuckback_timer -= delta
+		velocity.x = knuckback_direction * 1000
+		move_and_slide()
+		return
+
 	# Add the gravity.
 	if not is_on_floor():
 		velocity.y += gravity * delta
@@ -81,7 +88,9 @@ func _physics_process(delta):
 
 	move_and_slide()
 	
-func take_damage(damage):
+func take_damage(damage, direction):
+	knuckback_timer = 0.02
+	knuckback_direction = direction
 	health -= damage
 	health_bar.value = health
 	if health <= 0:
@@ -105,6 +114,6 @@ func _on_attack_timer_timeout():
 
 func _on_attack_area_2d_body_entered(body):
 	if animated_sprite.scale.x == 1:
-		body.take_damage(attack_power, 1)
+		body.get_parent().take_damage(attack_power, 1)
 	else:
-		body.take_damage(attack_power, -1)
+		body.get_parent().take_damage(attack_power, -1)
